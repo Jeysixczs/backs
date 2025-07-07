@@ -19,25 +19,31 @@ async function apiGet(path) {
     return resp.json();
 }
 async function getMangaList(query) {
-  const params = new URLSearchParams();
-  if (query) params.append('title', query);
-  params.append('includes[]', 'cover_art');
-  const url = `/api/manga?${params.toString()}`;
-  const resp = await fetch(url);
-  const data = await resp.json();
-  return data.data || [];
+    const params = new URLSearchParams();
+    if (query) params.append('title', query);
+    params.append('includes[]', 'cover_art');
+    const url = `/api/manga?${params.toString()}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    return data.data || [];
 }
 
 function getCoverUrl(manga) {
-  const coverArt = manga.relationships?.find(rel => rel.type === "cover_art");
-  if (!coverArt?.attributes?.fileName) {
-    return "https://mangadex.org/img/avatar.png";
-  }
-  
-  const directUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverArt.attributes.fileName}.256.jpg`;
-  
-  // Use proxy only if direct loading fails
-  return `/api/cover-image?url=${encodeURIComponent(directUrl)}`;
+    const coverArt = manga.relationships?.find(rel => rel.type === "cover_art");
+    if (!coverArt?.attributes?.fileName) {
+        return "https://mangadex.org/img/avatar.png";
+    }
+
+    // Construct both direct and proxy URLs
+    const directUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverArt.attributes.fileName}`;
+    const proxyUrl = `/api/cover-image?url=${encodeURIComponent(directUrl)}`;
+
+    // Return an object with both URLs for the frontend to handle
+    return {
+        direct: directUrl,
+        proxy: proxyUrl,
+        placeholder: "https://mangadex.org/img/avatar.png"
+    };
 }
 function getMainTitle(attr) {
     if (!attr || !attr.title) return 'No Title';
@@ -51,39 +57,53 @@ function getDescription(attr) {
 
 // Remove the duplicate showMangaList function (keep only one)
 async function showMangaList(query = "") {
-  mangaListEl.innerHTML = "Loading...";
-  try {
-    const mangas = await getMangaList(query);
-    if (!mangas.length) {
-      mangaListEl.innerHTML = "No manga found.";
-      return;
-    }
-    mangaListEl.innerHTML = "";
-    
-    mangas.forEach(manga => {
-      const attr = manga.attributes;
-      const card = document.createElement('div');
-      card.className = 'manga-card';
-      
-      const coverUrl = getCoverUrl(manga);
-      card.innerHTML = `
-        <img src="${coverUrl}" 
-             alt="cover" 
-             onerror="this.onerror=null;this.src='https://mangadex.org/img/avatar.png'"
-             style="width:180px;height:250px;object-fit:cover;">
-        <div class="manga-title">${escapeHTML(getMainTitle(attr))}</div>
-        <div class="manga-desc">${escapeHTML(getDescription(attr)).slice(0, 100)}...</div>
-      `;
-      
-      card.onclick = () => showDetails(manga.id);
-      mangaListEl.appendChild(card);
-    });
-  } catch (e) {
-    mangaListEl.innerHTML = "Failed to load manga.";
-    console.error(e);
-  }
-}
+    mangaListEl.innerHTML = "Loading...";
+    try {
 
+        const mangas = await getMangaList(query);
+        if (!mangas.length) {
+            mangaListEl.innerHTML = "No manga found.";
+            return;
+        }
+        mangaListEl.innerHTML = "";
+
+        mangas.forEach(manga => {
+            const attr = manga.attributes;
+            const card = document.createElement('div');
+            card.className = 'manga-card';
+
+            const coverInfo = getCoverUrl(manga);
+            card.innerHTML = `
+  <img src="${coverInfo.direct}" 
+       alt="cover" 
+       onerror="handleImageError(this, '${coverInfo.proxy}', '${coverInfo.placeholder}')"
+       style="width:180px;height:250px;object-fit:cover;">
+  <div class="manga-title">${escapeHTML(getMainTitle(attr))}</div>
+  <div class="manga-desc">${escapeHTML(getDescription(attr)).slice(0, 100)}...</div>
+`;
+
+
+            card.onclick = () => showDetails(manga.id);
+            mangaListEl.appendChild(card);
+        });
+    } catch (e) {
+        mangaListEl.innerHTML = "Failed to load manga.";
+        console.error(e);
+    }
+}
+function handleImageError(img, proxyUrl, placeholderUrl) {
+    if (img.src !== proxyUrl) {
+        // First try proxy
+        img.src = proxyUrl;
+        img.onerror = function () {
+            // Final fallback
+            this.src = placeholderUrl;
+        };
+    } else {
+        // Already tried proxy, go straight to placeholder
+        img.src = placeholderUrl;
+    }
+}
 function escapeHTML(str) {
     const div = document.createElement('div');
     div.innerText = str || '';
@@ -126,18 +146,32 @@ async function showDetails(mangaId) {
     detailsYear.textContent = "";
     detailsDescription.textContent = "";
     chapterList.innerHTML = "Loading...";
-    
+
     try {
         const data = await apiGet(`${API_BASE}/manga/${mangaId}`);
         const manga = data.data;
         const attr = manga.attributes;
         detailsTitle.textContent = getMainTitle(attr);
-        
+
         // Get and set cover image
-        const coverUrl = getCoverUrl(manga);
-        detailsCover.src = coverUrl;
-        detailsCover.style.display = coverUrl.includes('avatar.png') ? "none" : "block";
-        
+
+        // In your showMangaList and showDetails functions, update the image handling:
+        const coverInfo = getCoverUrl(manga);
+        const img = document.createElement('img');
+        img.src = coverInfo.direct;
+        img.onerror = function () {
+            // If direct load fails, try proxy
+            this.src = coverInfo.proxy;
+            this.onerror = function () {
+                // If both fail, use placeholder
+                this.src = coverInfo.placeholder;
+            };
+        };
+        img.alt = 'cover';
+        img.style.width = '180px';
+        img.style.height = '250px';
+        img.style.objectFit = 'cover';
+
         // Set other details
         detailsAuthor.textContent = "Author: " + (manga.relationships?.find(r => r.type === "author")?.attributes?.name || "Unknown");
         detailsYear.textContent = "Year: " + (attr.year || "Unknown");
@@ -184,8 +218,8 @@ closeModal.onclick = () => (detailsModal.style.display = "none");
 detailsModal.onclick = (e) => { if (e.target === detailsModal) detailsModal.style.display = "none"; };
 
 document.getElementById('search-btn').onclick = () => {
-  const query = document.getElementById('search-input').value.trim();
-  showMangaList(query);
+    const query = document.getElementById('search-input').value.trim();
+    showMangaList(query);
 };
 
 searchInput.onkeydown = e => { if (e.key === "Enter") showMangaList(searchInput.value.trim()); };
