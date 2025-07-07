@@ -125,7 +125,7 @@ async function showMangaList(query = "") {
             card.className = 'manga-card';
             const coverUrl = getCoverUrl(manga);
             card.innerHTML = `
-        <img src="${coverUrl}" alt="cover" onerror="this.src='placeholder.png'">
+        <img src="${coverUrl}" alt="cover" ">
         <div class="manga-title">${escapeHTML(getMainTitle(attr))}</div>
         <div class="manga-desc">${escapeHTML(getDescription(attr)).slice(0, 100)}...</div>
       `;
