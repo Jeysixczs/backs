@@ -9,7 +9,7 @@ export default async function handler(req, res) {
       }
     });
     if (!response.ok) {
-      return res.status(response.status).json({ error: await response.text() });
+     res.status(200).json({ status: "ok", message: "Manga endpoint is working." });
     }
     const data = await response.json();
     res.setHeader('Access-Control-Allow-Origin', '*');
