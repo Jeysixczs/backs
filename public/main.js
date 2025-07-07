@@ -37,13 +37,38 @@ function getDescription(attr) {
 }
 
 function getCoverUrl(manga) {
-  // Find the 'cover_art' relationship
-  const rel = manga.relationships?.find(r => r.type === "cover_art");
-  if (!rel || !rel.attributes?.fileName) {
-    return "placeholder.png"; // fallback to your placeholder image
+  const cover = manga.relationships?.find(rel => rel.type === "cover_art");
+  if (!cover || !cover.attributes?.fileName)
+    return "https://mangadex.org/img/cover-placeholder.png";
+  return `https://uploads.mangadex.org/covers/${manga.id}/${cover.attributes.fileName}.256.jpg`;
+}
+
+async function showMangaList(query = "") {
+  mangaListEl.innerHTML = "Loading...";
+  try {
+    const mangas = await getMangaList(query);
+    if (!mangas.length) {
+      mangaListEl.innerHTML = "No manga found.";
+      return;
+    }
+    mangaListEl.innerHTML = "";
+    mangas.forEach(manga => {
+      const attr = manga.attributes;
+      const card = document.createElement('div');
+      card.className = 'manga-card';
+      const coverUrl = getCoverUrl(manga);
+      card.innerHTML = `
+        <img src="${coverUrl}" alt="cover" onerror="this.src='https://mangadex.org/img/cover-placeholder.png'">
+        <div class="manga-title">${escapeHTML(getMainTitle(attr))}</div>
+        <div class="manga-desc">${escapeHTML(getDescription(attr)).slice(0, 100)}...</div>
+      `;
+      card.onclick = () => showDetails(manga.id);
+      mangaListEl.appendChild(card);
+    });
+  } catch (e) {
+    mangaListEl.innerHTML = "Failed to load manga.";
+    console.error(e);
   }
-  // Construct the full cover URL
-  return `https://uploads.mangadex.org/covers/${manga.id}/${rel.attributes.fileName}.256.jpg`;
 }
 function escapeHTML(str) {
   const div = document.createElement('div');
