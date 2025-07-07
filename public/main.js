@@ -29,16 +29,14 @@ async function getMangaList(query) {
 }
 
 function getCoverUrl(manga) {
-  const PLACEHOLDER = "https://mangadex.org/img/cover-placeholder.png";
-  if (!manga || !manga.id) return PLACEHOLDER;
+  // First try to get high quality cover
+  const coverArt = manga.relationships?.find(rel => rel.type === "cover_art");
+  if (coverArt?.id) {
+    return `https://uploads.mangadex.org/covers/${manga.id}/${coverArt.attributes.fileName}`;
+  }
   
-  // Find cover art relationship
-  const cover = manga.relationships?.find(rel => rel.type === "cover_art");
-  if (!cover || !cover.attributes?.fileName) return PLACEHOLDER;
-  
-  // Remove .256.jpg suffix if present and build proper URL
-  const fileName = cover.attributes.fileName.replace(/\.\d+\.jpg$/, '');
-  return `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
+  // Fallback to placeholder
+  return "https://mangadex.org/img/avatar.png";
 }
 
 function getMainTitle(attr) {
@@ -52,7 +50,6 @@ function getDescription(attr) {
 }
 
 async function showMangaList(query = "") {
-  const mangaListEl = document.getElementById('manga-list');
   mangaListEl.innerHTML = "Loading...";
   try {
     const mangas = await getMangaList(query);
@@ -61,16 +58,21 @@ async function showMangaList(query = "") {
       return;
     }
     mangaListEl.innerHTML = "";
+    
     mangas.forEach(manga => {
       const attr = manga.attributes;
       const card = document.createElement('div');
       card.className = 'manga-card';
+      
       const coverUrl = getCoverUrl(manga);
       card.innerHTML = `
-        <img src="${coverUrl}" alt="cover" onerror="this.src='https://mangadex.org/img/cover-placeholder.png'">
-        <div class="manga-title">${escapeHTML(attr.title?.en || Object.values(attr.title)[0] || "Untitled")}</div>
-        <div class="manga-desc">${escapeHTML(attr.description?.en || Object.values(attr.description)[0] || "").slice(0, 100)}...</div>
+        <img src="${coverUrl}" 
+             alt="cover" 
+             onerror="this.onerror=null;this.src='https://mangadex.org/img/avatar.png'"
+             style="width:180px;height:250px;object-fit:cover;">
+        <div class="manga-title">${escapeHTML(getMainTitle(attr))}</div>
       `;
+      
       card.onclick = () => showDetails(manga.id);
       mangaListEl.appendChild(card);
     });
@@ -79,6 +81,7 @@ async function showMangaList(query = "") {
     console.error(e);
   }
 }
+
 function escapeHTML(str) {
     const div = document.createElement('div');
     div.innerText = str || '';

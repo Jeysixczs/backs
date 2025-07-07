@@ -1,5 +1,6 @@
 // /api/manga/[id].js
 export default async function handler(req, res) {
+
   const { id } = req.query;
   const url = `https://api.mangadex.org/manga/${id}?includes[]=cover_art&includes[]=author&includes[]=artist`;
   try {
