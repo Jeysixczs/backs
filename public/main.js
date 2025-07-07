@@ -28,13 +28,16 @@ async function getMangaList(query) {
   return data.data || [];
 }
 
-// Utility to get the cover URL (use this everywhere you render covers)
 function getCoverUrl(manga) {
   const PLACEHOLDER = "https://mangadex.org/img/cover-placeholder.png";
   if (!manga || !manga.id) return PLACEHOLDER;
+  
+  // Find cover art relationship
   const cover = manga.relationships?.find(rel => rel.type === "cover_art");
-  const fileName = cover?.attributes?.fileName;
-  if (!fileName) return PLACEHOLDER;
+  if (!cover || !cover.attributes?.fileName) return PLACEHOLDER;
+  
+  // Remove .256.jpg suffix if present and build proper URL
+  const fileName = cover.attributes.fileName.replace(/\.\d+\.jpg$/, '');
   return `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
 }
 
@@ -113,16 +116,26 @@ async function showMangaList(query = "") {
 async function showDetails(mangaId) {
     detailsModal.style.display = "flex";
     detailsTitle.textContent = "";
+ 
     detailsCover.src = "";
     detailsAuthor.textContent = "";
     detailsYear.textContent = "";
     detailsDescription.textContent = "";
     chapterList.innerHTML = "Loading...";
     try {
+
         const data = await apiGet(`${API_BASE}/manga/${mangaId}`);
         const manga = data.data;
         const attr = manga.attributes;
         detailsTitle.textContent = getMainTitle(attr);
+        
+        // Get cover URL
+        const coverUrl = getCoverUrl(manga);
+        detailsCover.src = coverUrl;
+        detailsCover.style.display = coverUrl.includes('placeholder') ? "none" : "block";
+
+
+        
         detailsCover.src = getCoverUrl(manga);
         detailsCover.style.display = detailsCover.src ? "block" : "none";
         detailsAuthor.textContent = "Author: " + (manga.relationships?.find(r => r.type === "author")?.attributes?.name || "Unknown");
