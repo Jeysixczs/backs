@@ -29,13 +29,19 @@ async function getMangaList(query) {
 }
 
 function getCoverUrl(manga) {
-  // First try to get high quality cover
+  console.log("Manga ID:", manga.id);
+  console.log("Relationships:", manga.relationships);
+  
   const coverArt = manga.relationships?.find(rel => rel.type === "cover_art");
-  if (coverArt?.id) {
-    return `https://uploads.mangadex.org/covers/${manga.id}/${coverArt.attributes.fileName}`;
+  console.log("Cover Art:", coverArt);
+  
+  if (coverArt?.attributes?.fileName) {
+    const fileName = coverArt.attributes.fileName.replace(/\..+$/, '');
+    const url = `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
+    console.log("Constructed URL:", url);
+    return url;
   }
   
-  // Fallback to placeholder
   return "https://mangadex.org/img/avatar.png";
 }
 
@@ -49,6 +55,7 @@ function getDescription(attr) {
     return attr.description.en || Object.values(attr.description)[0] || '';
 }
 
+// Remove the duplicate showMangaList function (keep only one)
 async function showMangaList(query = "") {
   mangaListEl.innerHTML = "Loading...";
   try {
@@ -71,6 +78,7 @@ async function showMangaList(query = "") {
              onerror="this.onerror=null;this.src='https://mangadex.org/img/avatar.png'"
              style="width:180px;height:250px;object-fit:cover;">
         <div class="manga-title">${escapeHTML(getMainTitle(attr))}</div>
+        <div class="manga-desc">${escapeHTML(getDescription(attr)).slice(0, 100)}...</div>
       `;
       
       card.onclick = () => showDetails(manga.id);
@@ -119,34 +127,30 @@ async function showMangaList(query = "") {
 async function showDetails(mangaId) {
     detailsModal.style.display = "flex";
     detailsTitle.textContent = "";
- 
     detailsCover.src = "";
     detailsAuthor.textContent = "";
     detailsYear.textContent = "";
     detailsDescription.textContent = "";
     chapterList.innerHTML = "Loading...";
+    
     try {
-
         const data = await apiGet(`${API_BASE}/manga/${mangaId}`);
         const manga = data.data;
         const attr = manga.attributes;
         detailsTitle.textContent = getMainTitle(attr);
         
-        // Get cover URL
+        // Get and set cover image
         const coverUrl = getCoverUrl(manga);
         detailsCover.src = coverUrl;
-        detailsCover.style.display = coverUrl.includes('placeholder') ? "none" : "block";
-
-
+        detailsCover.style.display = coverUrl.includes('avatar.png') ? "none" : "block";
         
-        detailsCover.src = getCoverUrl(manga);
-        detailsCover.style.display = detailsCover.src ? "block" : "none";
+        // Set other details
         detailsAuthor.textContent = "Author: " + (manga.relationships?.find(r => r.type === "author")?.attributes?.name || "Unknown");
         detailsYear.textContent = "Year: " + (attr.year || "Unknown");
         detailsDescription.textContent = getDescription(attr);
         detailsGenres.textContent = "Genres: " + (attr.tags || []).map(t => t.attributes?.name?.en).filter(Boolean).join(", ");
 
-        // Chapters
+        // Load chapters
         const chData = await apiGet(`${API_BASE}/chapter?manga=${mangaId}&limit=100&translatedLanguage[]=en&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`);
         if (!chData.data.length) {
             chapterList.innerHTML = "No chapters.";
