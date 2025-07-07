@@ -19,11 +19,27 @@ async function apiGet(path) {
     return resp.json();
 }
 
-async function getMangaList(query = "") {
-    let url = `${API_BASE}/manga?limit=12&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&hasAvailableChapters=true&order[latestUploadedChapter]=desc`;
-    if (query) url += `&title=${encodeURIComponent(query)}`;
-    const data = await apiGet(url);
-    return data.data;
+async function getMangaList(query) {
+  // Build the search URL with the cover_art include!
+  const params = new URLSearchParams();
+  if (query) params.append('title', query);
+  params.append('includes[]', 'cover_art');
+  const url = `/api/manga?${params.toString()}`;
+
+  const resp = await fetch(url);
+  const data = await resp.json();
+  // Return the manga array directly, or adjust as needed for your code structure
+  return data.data || [];
+}
+
+// Utility to get the cover URL (use this everywhere you render covers)
+function getCoverUrl(manga) {
+  const PLACEHOLDER = "https://mangadex.org/img/cover-placeholder.png";
+  if (!manga || !manga.id) return PLACEHOLDER;
+  const cover = manga.relationships?.find(rel => rel.type === "cover_art");
+  const fileName = cover?.attributes?.fileName;
+  if (!fileName) return PLACEHOLDER;
+  return `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
 }
 
 function getMainTitle(attr) {
@@ -36,43 +52,33 @@ function getDescription(attr) {
     return attr.description.en || Object.values(attr.description)[0] || '';
 }
 
-
-
-function getCoverUrl(manga) {
-  const PLACEHOLDER = "https://mangadex.org/img/cover-placeholder.png";
-  if (!manga || !manga.id) return PLACEHOLDER;
-  const cover = manga.relationships?.find(rel => rel.type === "cover_art");
-  const fileName = cover?.attributes?.fileName;
-  if (!fileName) return PLACEHOLDER;
-  return `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
-}
-
 async function showMangaList(query = "") {
-    mangaListEl.innerHTML = "Loading...";
-    try {
-        const mangas = await getMangaList(query);
-        if (!mangas.length) {
-            mangaListEl.innerHTML = "No manga found.";
-            return;
-        }
-        mangaListEl.innerHTML = "";
-        mangas.forEach(manga => {
-            const attr = manga.attributes;
-            const card = document.createElement('div');
-            card.className = 'manga-card';
-            const coverUrl = getCoverUrl(manga);
-            card.innerHTML = `
-  <img src="${coverUrl}" alt="cover" onerror="this.src='https://mangadex.org/img/cover-placeholder.png'">
-  <div class="manga-title">${escapeHTML(getMainTitle(manga.attributes))}</div>
-  <div class="manga-desc">${escapeHTML(getDescription(manga.attributes)).slice(0, 100)}...</div>
-`;
-            card.onclick = () => showDetails(manga.id);
-            mangaListEl.appendChild(card);
-        });
-    } catch (e) {
-        mangaListEl.innerHTML = "Failed to load manga.";
-        console.error(e);
+  const mangaListEl = document.getElementById('manga-list');
+  mangaListEl.innerHTML = "Loading...";
+  try {
+    const mangas = await getMangaList(query);
+    if (!mangas.length) {
+      mangaListEl.innerHTML = "No manga found.";
+      return;
     }
+    mangaListEl.innerHTML = "";
+    mangas.forEach(manga => {
+      const attr = manga.attributes;
+      const card = document.createElement('div');
+      card.className = 'manga-card';
+      const coverUrl = getCoverUrl(manga);
+      card.innerHTML = `
+        <img src="${coverUrl}" alt="cover" onerror="this.src='https://mangadex.org/img/cover-placeholder.png'">
+        <div class="manga-title">${escapeHTML(attr.title?.en || Object.values(attr.title)[0] || "Untitled")}</div>
+        <div class="manga-desc">${escapeHTML(attr.description?.en || Object.values(attr.description)[0] || "").slice(0, 100)}...</div>
+      `;
+      card.onclick = () => showDetails(manga.id);
+      mangaListEl.appendChild(card);
+    });
+  } catch (e) {
+    mangaListEl.innerHTML = "Failed to load manga.";
+    console.error(e);
+  }
 }
 function escapeHTML(str) {
     const div = document.createElement('div');
@@ -167,7 +173,11 @@ async function readChapter(chapterId, chTitle) {
 closeModal.onclick = () => (detailsModal.style.display = "none");
 detailsModal.onclick = (e) => { if (e.target === detailsModal) detailsModal.style.display = "none"; };
 
-searchBtn.onclick = () => showMangaList(searchInput.value.trim());
+document.getElementById('search-btn').onclick = () => {
+  const query = document.getElementById('search-input').value.trim();
+  showMangaList(query);
+};
+
 searchInput.onkeydown = e => { if (e.key === "Enter") showMangaList(searchInput.value.trim()); };
 
 showMangaList();
