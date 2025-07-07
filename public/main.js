@@ -36,13 +36,7 @@ function getDescription(attr) {
   return attr.description.en || Object.values(attr.description)[0] || '';
 }
 
-function getCoverUrl(manga) {
-  const cover = manga.relationships?.find(rel => rel.type === "cover_art");
-  if (!cover || !cover.attributes?.fileName) {
-    return "https://mangadex.org/img/cover-placeholder.png";
-  }
-  return `https://uploads.mangadex.org/covers/${manga.id}/${cover.attributes.fileName}.256.jpg`;
-}
+
 
 // Inside your rendering function
 const coverUrl = getCoverUrl(manga);
