@@ -1,4 +1,3 @@
-// /api/manga.js
 export default async function handler(req, res) {
   const params = req.url.split('?')[1] || '';
   const url = `https://api.mangadex.org/manga?${params}`;
