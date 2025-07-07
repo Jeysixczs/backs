@@ -29,22 +29,16 @@ async function getMangaList(query) {
 }
 
 function getCoverUrl(manga) {
-  console.log("Manga ID:", manga.id);
-  console.log("Relationships:", manga.relationships);
-  
   const coverArt = manga.relationships?.find(rel => rel.type === "cover_art");
-  console.log("Cover Art:", coverArt);
-  
-  if (coverArt?.attributes?.fileName) {
-    const fileName = coverArt.attributes.fileName.replace(/\..+$/, '');
-    const url = `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
-    console.log("Constructed URL:", url);
-    return url;
+  if (!coverArt?.attributes?.fileName) {
+    return "https://mangadex.org/img/avatar.png";
   }
   
-  return "https://mangadex.org/img/avatar.png";
+  const directUrl = `https://uploads.mangadex.org/covers/${manga.id}/${coverArt.attributes.fileName}.256.jpg`;
+  
+  // Use proxy only if direct loading fails
+  return `/api/cover-image?url=${encodeURIComponent(directUrl)}`;
 }
-
 function getMainTitle(attr) {
     if (!attr || !attr.title) return 'No Title';
     return attr.title.en || attr.title['en-us'] || Object.values(attr.title)[0] || 'No Title';
