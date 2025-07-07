@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MangaDex Simple Reader</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script defer src="main.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #181a1b; color: #eee; }
+    #search-bar { margin: 1em 0; }
+    #manga-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1em; }
+    .manga-card { background: #23272a; border-radius: 8px; padding: 1em; text-align: center; box-shadow: 0 2px 8px #0004; cursor: pointer; }
+    .manga-card img { max-width: 180px; height: 250px; object-fit: cover; margin-bottom: 0.5em; border-radius: 6px; background: #333; }
+    .manga-title { font-weight: bold; font-size: 1.1em; margin-bottom: .5em; }
+    .manga-desc { font-size: 0.9em; color: #bbb; margin-bottom: .5em; }
+    #details-modal { display: none; position: fixed; left:0; top:0; width:100vw; height:100vh; background: #181a1bcc; z-index: 100; justify-content: center; align-items: center; }
+    #details-content { background: #23272a; padding: 2em; border-radius: 8px; width: 90vw; max-width: 700px; color: #fff; }
+    #close-modal { float: right; font-size: 1.5em; cursor: pointer; }
+    .chapter-list { max-height: 200px; overflow-y: auto; margin-top: 1em; }
+    .chapter-item { background: #222; margin: 4px 0; padding: 6px 10px; border-radius: 4px; cursor: pointer; color: #87f; }
+    .chapter-item:hover { background: #333; }
+  </style>
+</head>
+<body>
+  <h1>MangaDex Simple Reader</h1>
+  <div id="search-bar">
+    <input type="text" id="search-input" placeholder="Search manga..." style="padding:0.5em;font-size:1em;">
+    <button id="search-btn">Search</button>
+  </div>
+  <div id="manga-list"></div>
+
+  <div id="details-modal">
+    <div id="details-content">
+      <span id="close-modal">&times;</span>
+      <h2 id="details-title"></h2>
+      <img id="details-cover" src="" alt="cover" style="max-width:180px;height:250px;display:block;margin-bottom:10px;">
+      <div id="details-author"></div>
+      <div id="details-year"></div>
+      <div id="details-description" style="margin:1em 0;"></div>
+      <div id="details-genres"></div>
+      <div>Chapters:</div>
+      <div class="chapter-list" id="chapter-list"></div>
+    </div>
+  </div>
+</body>
+</html>
