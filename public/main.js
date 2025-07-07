@@ -38,10 +38,19 @@ function getDescription(attr) {
 
 function getCoverUrl(manga) {
   const cover = manga.relationships?.find(rel => rel.type === "cover_art");
-  if (!cover || !cover.attributes?.fileName)
+  if (!cover || !cover.attributes?.fileName) {
     return "https://mangadex.org/img/cover-placeholder.png";
+  }
   return `https://uploads.mangadex.org/covers/${manga.id}/${cover.attributes.fileName}.256.jpg`;
 }
+
+// Inside your rendering function
+const coverUrl = getCoverUrl(manga);
+card.innerHTML = `
+  <img src="${coverUrl}" alt="cover" onerror="this.src='https://mangadex.org/img/cover-placeholder.png'">
+  <div class="manga-title">${escapeHTML(getMainTitle(attr))}</div>
+  <div class="manga-desc">${escapeHTML(getDescription(attr)).slice(0, 100)}...</div>
+`;
 
 async function showMangaList(query = "") {
   mangaListEl.innerHTML = "Loading...";
