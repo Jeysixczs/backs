@@ -37,11 +37,14 @@ function getDescription(attr) {
 }
 
 function getCoverUrl(manga) {
+  // Find the 'cover_art' relationship
   const rel = manga.relationships?.find(r => r.type === "cover_art");
-  if (!rel || !rel.attributes?.fileName) return "";
+  if (!rel || !rel.attributes?.fileName) {
+    return "placeholder.png"; // fallback to your placeholder image
+  }
+  // Construct the full cover URL
   return `https://uploads.mangadex.org/covers/${manga.id}/${rel.attributes.fileName}.256.jpg`;
 }
-
 function escapeHTML(str) {
   const div = document.createElement('div');
   div.innerText = str || '';
@@ -61,8 +64,9 @@ async function showMangaList(query = "") {
       const attr = manga.attributes;
       const card = document.createElement('div');
       card.className = 'manga-card';
+      const coverUrl = getCoverUrl(manga);
       card.innerHTML = `
-        <img src="${getCoverUrl(manga)}" alt="cover" onerror="this.style.display='none'">
+        <img src="${coverUrl}" alt="cover" onerror="this.src='placeholder.png'">
         <div class="manga-title">${escapeHTML(getMainTitle(attr))}</div>
         <div class="manga-desc">${escapeHTML(getDescription(attr)).slice(0, 100)}...</div>
       `;
