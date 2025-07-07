@@ -39,26 +39,12 @@ function getDescription(attr) {
 
 
 function getCoverUrl(manga) {
-    const PLACEHOLDER = "https://mangadex.org/img/cover-placeholder.png";
-    if (!manga || !manga.id) {
-        console.warn('⚠️ Invalid manga object');
-        return PLACEHOLDER;
-    }
-
-    const coverRelationship = manga.relationships?.find(rel => rel.type === 'cover_art');
-    if (!coverRelationship) {
-        console.warn(`⚠️ No cover relationship found for manga: ${manga.id}`);
-        return PLACEHOLDER;
-    }
-
-    const fileName = coverRelationship.attributes?.fileName;
-    if (!fileName) {
-        console.warn(`⚠️ No filename available for manga: ${manga.id}`);
-        return PLACEHOLDER;
-    }
-
-    // Always use the .256.jpg size for thumbnails
-    return `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
+  const PLACEHOLDER = "https://mangadex.org/img/cover-placeholder.png";
+  if (!manga || !manga.id) return PLACEHOLDER;
+  const cover = manga.relationships?.find(rel => rel.type === "cover_art");
+  const fileName = cover?.attributes?.fileName;
+  if (!fileName) return PLACEHOLDER;
+  return `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
 }
 
 async function showMangaList(query = "") {
