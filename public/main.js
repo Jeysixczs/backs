@@ -18,17 +18,13 @@ async function apiGet(path) {
     if (!resp.ok) throw new Error('API error: ' + resp.status);
     return resp.json();
 }
-
 async function getMangaList(query) {
-  // Build the search URL with the cover_art include!
   const params = new URLSearchParams();
   if (query) params.append('title', query);
   params.append('includes[]', 'cover_art');
   const url = `/api/manga?${params.toString()}`;
-
   const resp = await fetch(url);
   const data = await resp.json();
-  // Return the manga array directly, or adjust as needed for your code structure
   return data.data || [];
 }
 
